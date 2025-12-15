@@ -22,19 +22,31 @@ User: {question}
 Assistant: <think>  """
 
 def load_data():
-    print(f"Loading {DATASET_NAME}...")
-    
-    # Use the raw/resolve URL for direct download
-    data_url = "https://huggingface.co/datasets/hiyouga/math12k/resolve/main/data/test-00000-of-00001.parquet"
-    
-    try:
-        df = pd.read_parquet(data_url)
-        test_ds = Dataset.from_pandas(df)
-        print(f"Loaded {len(test_ds)} examples for evaluation.")
-        return test_ds
-    except Exception as e:
-        print(f"Error loading data: {e}")
-        raise
+    subsets = [
+        'algebra',
+        'counting_and_probability',
+        'geometry',
+        'intermediate_algebra',
+        'number_theory',
+        'prealgebra',
+        'precalculus'
+    ]
+
+    # Base URL for Parquet files
+    base_url = "https://huggingface.co/datasets/EleutherAI/hendrycks_math/resolve/refs%2Fconvert%2Fparquet"
+
+    # Load and combine all test examples
+    test_dfs = []
+    for subset in subsets:
+        print(f"Loading {subset} test split...")
+        test_url = f"{base_url}/{subset}/test/0000.parquet"
+        df = pd.read_parquet(test_url)
+        df['subset'] = subset  # Add a column to track which subset each row came from
+        test_dfs.append(df)
+
+    test_data = pd.concat(test_dfs, ignore_index=True)
+    ds_test = Dataset.from_pandas(test_data)
+    return ds_test
 
 def evaluate_baseline():
     # 1. Prepare Data
