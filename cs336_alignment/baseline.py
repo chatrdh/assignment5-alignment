@@ -2,24 +2,20 @@ import json
 import torch
 from datasets import Dataset
 from vllm import LLM, SamplingParams
-from drgrpo_grader import r1_zero_reward_fn  
+from drgrpo_grader import r1_zero_reward_fn  , extract_boxed_answer
 import pandas as pd
 
 
 # --- Configuration ---
 MODEL_NAME = "Qwen/Qwen2.5-Math-1.5B"
-DATASET_NAME = "hiyouga/math12k"
+
 OUTPUT_FILE = "evaluation_results.jsonl"
-TEST_SIZE = 2048  # Number of examples to evaluate
+
 
 # R1-Zero Prompt Template 
-R1_PROMPT_TEMPLATE = """A conversation between User and Assistant. The User asks a question, and the Assistant solves it. 
-The Assistant first thinks about the reasoning process in the mind and then provides the User with the answer.
-The reasoning process is enclosed within <think> </think> and answer is enclosed within <answer> </answer> tags,
-respectively, i.e., <think> reasoning process here </think> <answer> answer here </answer>.
-
+R1_PROMPT_TEMPLATE = """A conversation between User and Assistant. The User asks a question, and the Assistant solves it. The Assistant first thinks about the reasoning process in the mind and then provides the User with the answer. The reasoning process is enclosed within <think> </think> and answer is enclosed within <answer> </answer> tags, respectively, i.e., <think> reasoning process here </think> <answer> answer here </answer>.
 User: {question}
-Assistant: <think>  """
+Assistant: <think>"""
 
 def load_data():
     subsets = [
@@ -54,7 +50,7 @@ def evaluate_baseline():
     
     # 2. Prepare Prompts
     prompts = [R1_PROMPT_TEMPLATE.format(question=ex['problem']) for ex in dataset]
-    ground_truths = [ex['answer'] for ex in dataset]
+    ground_truths = [extract_boxed_answer(ex['solution']) for ex in dataset]
 
     # 3. Initialize Model (Optimized for T4 GPU)
     print("Initializing Model...")
