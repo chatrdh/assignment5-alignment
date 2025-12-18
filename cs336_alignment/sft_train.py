@@ -214,7 +214,7 @@ def main(
     vllm_engine = init_vllm_engine(model_id, device)
     model, tokenizer = init_policy_model(model_id, device)
     
-    train_loader = get_train_dataloader(sft_data_path, tokenizer, micro_batch_size, device)
+    train_loader = get_train_dataloader(sft_data_path, tokenizer, micro_batch_size, device,limit=dataset_limit)
     val_data = load_validation_data(limit=128)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
