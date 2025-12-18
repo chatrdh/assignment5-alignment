@@ -89,3 +89,36 @@ return_token_entropy: bool = False,
     
     return result
     
+
+def masked_normalize(
+    tensor: torch.Tensor,
+    mask: torch.Tensor,
+    normalize_constant: float,
+    dim: int | None = None,
+) -> torch.Tensor:
+    masked_tensor = tensor * mask
+
+    if dim is None:
+        summed = masked_tensor.sum()        # scalar
+    else:
+        summed = masked_tensor.sum(dim=dim) # tensor
+
+    return summed / normalize_constant
+    
+
+
+def sft_microbatch_train_step(
+    policy_log_probs: torch.Tensor,   # (B, S)
+    response_mask: torch.Tensor,      # (B, S)
+    gradient_accumulation_steps: int,
+    normalize_constant: float = 1.0,
+):
+    loss  = -masked_normalize(policy_log_probs,response_mask,normalize_constant)
+    for _ in range((gradient_accumulation_steps)):
+        loss = loss/gradient_accumulation_steps
+    loss.backward()
+    metadata = {"loss":loss}
+    return (loss,metadata)
+
+
+    
