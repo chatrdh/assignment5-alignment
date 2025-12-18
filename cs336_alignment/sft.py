@@ -72,7 +72,7 @@ model: torch.nn.Module,
 input_ids: torch.Tensor,
 labels: torch.Tensor,
 return_token_entropy: bool = False,
-) -> dict[str, torch.Tensor]:
+):
     output = model(input_ids)
     logits = output.logits
     log_probs_all = F.log_softmax(logits, dim=-1)  # Shape: (batch_size, sequence_length, vocab_size)
@@ -84,5 +84,8 @@ return_token_entropy: bool = False,
     result = {"log_probs": log_probs}
 
     if return_token_entropy :
-        compute_entropy(logits)
+       entropy=  compute_entropy(logits)
+       result["token_entropy"] =entropy
+    
+    return result
     
