@@ -1,4 +1,7 @@
 import torch
+import einops
+import torch.nn.functional as F
+
 
 def tokenize_prompt_and_output(prompt_strs, output_strs, tokenizer):
     prompt_tokens_list = [tokenizer(p, add_special_tokens=False)["input_ids"] for p in prompt_strs]
@@ -49,3 +52,37 @@ def tokenize_prompt_and_output(prompt_strs, output_strs, tokenizer):
         "labels": labels,
         "response_mask": response_mask
     }
+
+
+def compute_entropy(logits: torch.Tensor) -> torch.Tensor:
+   # Convert logits to probabilities
+    probs = F.softmax(logits, dim=-1)
+    
+    # Compute log probabilities (more numerically stable)
+    log_probs = F.log_softmax(logits, dim=-1)
+    
+    # Entropy = -sum(p * log(p)) over vocab dimension
+    # Using einops to sum over the vocabulary dimension
+    entropy = -einops.reduce(probs * log_probs, 'batch seq vocab -> batch seq', 'sum')
+    
+    return entropy
+
+def get_response_log_probs(
+model: torch.nn.Module,
+input_ids: torch.Tensor,
+labels: torch.Tensor,
+return_token_entropy: bool = False,
+) -> dict[str, torch.Tensor]:
+    output = model(input_ids)
+    logits = output.logits
+    log_probs_all = F.log_softmax(logits, dim=-1)  # Shape: (batch_size, sequence_length, vocab_size)
+    log_probs = torch.gather(
+        log_probs_all, 
+        dim=-1, 
+        index=labels.unsqueeze(-1)  # Shape: (batch_size, sequence_length, 1)
+    ).squeeze(-1)
+    result = {"log_probs": log_probs}
+
+    if return_token_entropy :
+        compute_entropy(logits)
+    
