@@ -200,6 +200,7 @@ def main(
     micro_batch_size: int = 2,      
     eval_every_steps: int = 50,
     device: str = "cuda:0", # Single device for everything
+    dataset_limit: int = 256
 ):
     wandb.init(project="cs336-assignment5-sft", name=exp_name)
     wandb.define_metric("train_step")
